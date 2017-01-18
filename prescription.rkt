@@ -124,9 +124,58 @@
 ;;
 ;; What happens once we have the script?
 ;;
+;; Pharmacist can do a number of things, in particular substitution.
+;; More generally, the Pharmacist's job is to translate the script into physical medication.
+;;
+;; translate-script :: script/c -> script/c
+;;
+;; roughly:
+;; (letrec ((transformations (valid-fill-options-for script))
+;;          (transformation (magically-choose-one transformations)))
+;;    (when (not (equal? (transformation script) script))
+;;      (alert-doctor 'substitution-made transformation))
+;;    (fill (transformation script)))
+;;
+;; magically-choose-one and valid-fill-options-for have signatures something like...
+;; fill-options :: script/c -> (listof script-translation/c)
+;; magically-choose-one :: (listof script-translation/c) -> script-translation/c
+;;
+;; script-translation/c is some function from script/c -> script/c.
+;;
+;; We don't want to just make the substitution because then it becomes harder to tell exactly what
+;; steps were taken in making the subtitution in the first place. If we record the intended
+;; subsitution, we can defer making the substitution at this time. And it gives us something to
+;; *tell* the doctor, instead of "here's what I filled" and it just doesn't look at all the same.
+;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Cool, it works. Now let's make it do something.
+(define script-translation/c
+  (-> script/c script/c))
 
-;; Pharmacist can do a number of things, mostly by substitution.
-;; Generally, the Pharmacist's job is to translate the script into physical medication.
+(define/contract (valid-fill-options-for script available-rx)
+  (-> script/c (listof rx/c) (listof script-translation/c))
+  ;; NOTE: this is where the mdb idea becomes really appealing again. Even just using
+  ;;   a SQL query would be cleaner, more flexible, than something bespoke like this.
+  (let ([possible-rx (possible-rx-for (script-rx script) available-rx)])
+   (for/list ([new-rx possible-rx])
+       (list subtitute script new-rx))))
+
+(define/contract (substitute script)
+  (-> script/c script/c)
+  ;; TODO
+  script)
+
+(define/contract (possible-rx-for intended-rx available-rx)
+  (-> rx/c (listof rx/c) rx/c)
+  ;; TODO
+  (letrec ([intended-drug (rx-drug intended-rx)]
+           [intended-dosage (rx-dosage intended-rx)]
+           [intended-doses (rx-doses intended-rx)])
+    (filter
+      (λ (an-rx)
+         (and
+           (equal? (rx-drug an-rx) intended-drug)
+           (equal? (rx-dosage an-rx) intended-dosage)
+           (equal? (rx-doses an-rx) intended-doses)))
+      available-rx)))
+
