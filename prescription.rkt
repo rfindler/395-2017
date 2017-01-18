@@ -198,18 +198,18 @@
    (for/list ([new-rx possible-rx])
      (if (equal? (drug-name (rx-drug new-rx))
                  (drug-name (rx-drug (script-rx script))))
-       (list exact-rx script new-rx)
-       (list substitute-rx script new-rx)))))
+       `(,exact-rx ,script ,new-rx)
+       `(,substitute-rx ,script ,new-rx)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Pharmacist tests.
+;; Pharmacist translation tests.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (check-equal?
  (valid-fill-options-for example-script (list (script-rx example-script)))
- (list (list exact-rx example-script (script-rx example-script))))
+ `((,exact-rx ,example-script ,(script-rx example-script))))
 
 (define prilosec
   ;; "doses" here means "stock" in the pharmacy
@@ -232,12 +232,12 @@
 
 (check-equal?
   (valid-fill-options-for example-script (reverse (cons (script-rx example-script) some-rx)))
-  (list (list exact-rx example-script (script-rx example-script))))
+  `((,exact-rx ,example-script ,(script-rx example-script))))
 
 ;; FIXME: this will currently fail.
 (check-equal?
   (valid-fill-options-for example-script (cons not-quite-same-zestril some-rx))
-  (list (list substitute-rx example-script not-quite-same-zestril)))
+  `((,substitute-rx ,example-script ,not-quite-same-zestril)))
 
 (define tylenol-script
   (script
@@ -249,7 +249,7 @@
 
 (check-equal?
   (valid-fill-options-for tylenol-script some-rx)
-  (list (list exact-rx tylenol-script probably-deadly-tylenol)))
+  `((,exact-rx ,tylenol-script ,probably-deadly-tylenol)))
 
 (define unfillably-large-script
   (script
