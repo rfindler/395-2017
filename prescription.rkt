@@ -272,6 +272,8 @@
 ;;   sorts of things as they occur.
 (check-equal?
   (valid-fill-methods-for unfillably-large-script some-rx)
+  ;; possibly better answer?
+  ;; `((,partial-fill ,1000 (,exact-rx ,unfillably-large-script ,prilosec)))
   '())
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
