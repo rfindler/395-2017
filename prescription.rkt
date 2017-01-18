@@ -452,3 +452,17 @@
 ;; or what-have-you in case things change... These communications channels are undefined now.
 ;;
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Exactly one working example.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Let's make a script for prilosec.
+(letrec ([a-script
+           (doctor/sign-script
+             (doctor/write-script (patient "Robby" "Findler"))
+             "Steven Belknap")]
+         [verified-script (pharmacist/verify a-script)]
+         [medication (pharmacist/fill verified-script some-rx)])
+  (display (rx-with-label-label medication)))
