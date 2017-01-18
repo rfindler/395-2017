@@ -239,7 +239,7 @@
   '())
 
 (check-equal?
-  (valid-fill-methods-for example-script (reverse (cons (script-rx example-script) some-rx)))
+  (valid-fill-methods-for example-script (cons (script-rx example-script) some-rx))
   `((,exact-rx ,example-script ,(script-rx example-script))))
 
 ;; FIXME: this will currently fail.
