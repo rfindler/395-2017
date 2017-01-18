@@ -93,7 +93,7 @@
    (rx (drug "Zestril") (dosage 10 "mg") (doses 90))
    ;; NOTE: the unicode codepoint for • is 2022.
    (sig (redundant-count "•" 1) (addtl '("po" "qhs")))
-   "for hypertension")) ;; --> creates a script object.
+   "for hypertension"))
 
 ;;
 ;; Possibly interesting ideas for extension?
