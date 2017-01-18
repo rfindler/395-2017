@@ -158,7 +158,7 @@
    script/c
    rx/c))
 
-;; The function that translates the original script to its possibly substituted fulfilment.
+;; The function that translates the original script to its possibly substituted fulfillment.
 (define/contract (substitute script)
   (-> script/c script/c)
   ;; TODO
