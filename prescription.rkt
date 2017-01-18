@@ -356,6 +356,18 @@
       ;(add-to-shelf (rx-with-label ...))
       (rx-with-label (script-rx new-script)
                      (string-append
+                       (patient-first-name (script-patient script))
+                       " "
+                       (patient-last-name (script-patient script))
+                       "\n"
+                       (drug-name (rx-drug (script-rx new-script)))
+                       " "
+                       (number->string (dosage-amount (rx-dosage (script-rx new-script))))
+                       " "
+                       (dosage-units (rx-dosage (script-rx new-script)))
+                       " #"
+                       (number->string (doses-count (rx-doses (script-rx new-script))))
+                       "\n"
                        (sig-to-string (script-sig new-script))
                        "\n"
                        (script-reason new-script))))))
@@ -400,7 +412,7 @@
 
 (check-equal?
   (rx-with-label-label (pharmacist/fill tylenol-script some-rx))
-  "#<sig>\nfor your neighbor's annoying dog")
+  "Mark The Zuck\nAcetominophen 500 mg #1\n#<sig>\nfor your neighbor's annoying dog")
 
 ;; FIXME this will currently be an exn. Need to make valid-fill-methods-for return a valid fill
 ;;   method when there's a way to fill the rx inexactly.
