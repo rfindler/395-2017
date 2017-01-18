@@ -156,7 +156,7 @@
 ;; A record of how a pharmacist is filling the script.
 (define script-translation/c
   (list/c
-   (-> script/c script/c)
+   (-> script/c rx/c script/c)
    script/c
    rx/c))
 
