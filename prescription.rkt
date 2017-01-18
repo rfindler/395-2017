@@ -56,18 +56,18 @@
             string?                      ; dots
             exact-nonnegative-integer?)) ; numerals
 
-;; Sig-addtl.
-(struct addtl (instructions))
-(define addtl/c
-  (struct/c addtl
-            (listof string?))) ; addtl-instructions
+;; Sig-additional.
+(struct additional (instructions))
+(define additional/c
+  (struct/c additional
+            (listof string?))) ; additional-instructions
 
 ;; Sig.
-(struct sig (times addtl))
+(struct sig (times additional))
 (define sig/c
   (struct/c sig
             redundant-count/c ; redundant count
-            addtl/c))         ; additional description
+            additional/c))         ; additional description
 
 ;; Script-reason.
 (define optional-string/c (or/c string? null?))
@@ -80,6 +80,7 @@
             rx/c                ; rx
             sig/c               ; sig
             optional-string/c)) ; reason
+;; TODO attach contract to struct constructor
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -87,12 +88,13 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define example-script
+(define/contract example-script
+  script/c
   (script
    (patient "Bill" "Gates")
    (rx (drug "Zestril") (dosage 10 "mg") (doses 90))
    ;; NOTE: the unicode codepoint for • is 2022.
-   (sig (redundant-count "•" 1) (addtl '("po" "qhs")))
+   (sig (redundant-count "•" 1) (additional '("po" "qhs")))
    "for hypertension"))
 
 ;;
@@ -109,7 +111,7 @@
 ;;     or, (mdb/any #:that-will 'treat-headache)
 ;;     or, (mdb/any #:that-does-not-cause 'sleepiness #:that-will 'treat-depression)
 ;;     Then the pharmacist can execute the given query on their own database of available pills.
-;; • sig-addtl-instructions interpreter that translates "po" to "by mouth," "qhs" to "before
+;; • sig-additional-instructions interpreter that translates "po" to "by mouth," "qhs" to "before
 ;;     bed," etc.
 ;; • generate-label: take a script and generate a reasonable label for the medication bottle.
 ;;     --- Note that labels actually say things like "Omeprazole... Substituted For: Prilosec."
@@ -252,7 +254,7 @@
    (patient "Mark" "The Zuck")
    (rx (drug "Acetominophen") (dosage 500 "mg") (doses 1))
    ;; NOTE the unicode codepoint for • is 2022.
-   (sig (redundant-count "•" 1) (addtl '()))
+   (sig (redundant-count "•" 1) (additional '()))
    "for your neighbor's annoying dog"))
 
 (check-equal?
@@ -264,7 +266,7 @@
   (script
     (patient "Steve" "Jobs")
     (rx (drug "Omeprazole") (dosage 20 "mg") (doses 1500))
-    (sig (redundant-count "•" 1) (addtl '("po" "qhs")))
+    (sig (redundant-count "•" 1) (additional '("po" "qhs")))
     "because tacos don't like you but you really like them"))
 
 ;; TODO: partial fill? With some notification to the doctor. Add a "come back Tuesday" to the label.
@@ -289,7 +291,7 @@
   (script
     patient
     (rx (drug "Omeprazole") (dosage 20 "mg") (doses 10))
-    (sig (redundant-count "••" 2) (addtl '("po")))
+    (sig (redundant-count "••" 2) (additional '("po")))
     "for gastroesophageal reflux disorder"))
 
 ;; Script signing.
@@ -466,3 +468,4 @@
          [verified-script (pharmacist/verify a-script)]
          [medication (pharmacist/fill verified-script some-rx)])
   (display (rx-with-label-label medication)))
+
