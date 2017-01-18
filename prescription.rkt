@@ -45,6 +45,9 @@
             doses/c))  ; doses
 
 ;; Sig-redundant-count.
+;; TODO: is there a way using contracts to enforce that number of •s must be the same as the given
+;;       integer value? Then we have an invariant that the compiler can yell at us about if we get
+;;       it wrong. Maybe. Hopefully.
 (struct redundant-count (dots numerals))
 (define redundant-count/c
   (struct/c redundant-count
@@ -103,7 +106,7 @@
 ;;     (mdb/in-category-of "Zestril" #:that-will 'treat-hypertension)
 ;;     or, (mdb/any #:that-will 'treat-headache)
 ;;     or, (mdb/any #:that-does-not-cause 'sleepiness #:that-will 'treat-depression)
-;;     Then the pharmacist can execute the query on their own database of available pills.
+;;     Then the pharmacist can execute the given query on their own database of available pills.
 ;; • sig-addtl-instructions interpreter that translates "po" to "by mouth," "qhs" to "before
 ;      bed," etc.
 ;; • generate-label: take a script and generate a reasonable label for the medication bottle.
