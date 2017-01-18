@@ -163,14 +163,14 @@
 ;; The function that translates the original script to its possibly substituted fulfillment.
 ;; TODO: adjust dosage, doses, ifneedbe. Change sig if necessary (maybe the substituted drug must be
 ;;       taken 2 at a time instead of 1 at a time, for instance, if it is half-dose size.)
-(define/contract (substitute-rx script)
-  (-> script/c script/c)
+(define/contract (substitute-rx script rx)
+  (-> script/c script/c rx/c)
   ;; TODO: Should not be the same as exact-rx.
   script)
 
 ;; Make no change to rx. The "id" translation.
-(define/contract (exact-rx script)
-  (-> script/c script/c)
+(define/contract (exact-rx script rx)
+  (-> script/c script/c rx/c)
   script)
 
 ;; Find all the rx from a list of available rx that can be used in place of a given rx.
