@@ -1,5 +1,7 @@
 #lang racket
 
+(require rackunit)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Start with the script. Let's model that first, and see how it goes.
@@ -64,8 +66,8 @@
 (struct sig (times addtl))
 (define sig/c
   (struct/c sig
-            exact-nonnegative-integer? ; times
-            string?)) ; additional description
+            redundant-count/c ; redundant count
+            addtl/c))         ; additional description
 
 ;; Script-reason.
 (define reason/c (or/c string? null?))
@@ -88,9 +90,9 @@
 (define example-script
   (script
    (patient "Bill" "Gates")
-   (rx "Zestril" (dosage 10 "mg") (doses 90))
+   (rx (drug "Zestril") (dosage 10 "mg") (doses 90))
    ;; NOTE: the unicode codepoint for • is 2022.
-   (sig (redundant-count "•" 1) '("po" "qhs"))
+   (sig (redundant-count "•" 1) (addtl '("po" "qhs")))
    "for hypertension")) ;; --> creates a script object.
 
 ;;
@@ -140,7 +142,7 @@
 ;; fill-options :: script/c -> (listof script-translation/c)
 ;; magically-choose-one :: (listof script-translation/c) -> script-translation/c
 ;;
-;; script-translation/c is some function from script/c -> script/c.
+;; script-translation/c is some record of a transformation from script/c -> script/c.
 ;;
 ;; We don't want to just make the substitution because then it becomes harder to tell exactly what
 ;; steps were taken in making the subtitution in the first place. If we record the intended
@@ -149,24 +151,22 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; A record of how a pharmacist is filling the script.
 (define script-translation/c
-  (-> script/c script/c))
+  (list/c
+   (-> script/c script/c)
+   script/c
+   rx/c))
 
-(define/contract (valid-fill-options-for script available-rx)
-  (-> script/c (listof rx/c) (listof script-translation/c))
-  ;; NOTE: this is where the mdb idea becomes really appealing again. Even just using
-  ;;   a SQL query would be cleaner, more flexible, than something bespoke like this.
-  (let ([possible-rx (possible-rx-for (script-rx script) available-rx)])
-   (for/list ([new-rx possible-rx])
-       (list subtitute script new-rx))))
-
+;; The function that translates the original script to its possibly substituted fulfilment.
 (define/contract (substitute script)
   (-> script/c script/c)
   ;; TODO
   script)
 
+;; Find all the rx from a list of available rx that can be used in place of a given rx.
 (define/contract (possible-rx-for intended-rx available-rx)
-  (-> rx/c (listof rx/c) rx/c)
+  (-> rx/c (listof rx/c) (listof rx/c))
   ;; TODO
   (letrec ([intended-drug (rx-drug intended-rx)]
            [intended-dosage (rx-dosage intended-rx)]
@@ -178,4 +178,24 @@
            (equal? (rx-dosage an-rx) intended-dosage)
            (equal? (rx-doses an-rx) intended-doses)))
       available-rx)))
+
+;; Find all valid script-translation/c for a given script using only available-rx.
+(define/contract (valid-fill-options-for script available-rx)
+  (-> script/c (listof rx/c) (listof script-translation/c))
+  ;; NOTE: this is where the mdb idea becomes really appealing again. Even just using
+  ;;   a SQL query would be cleaner, more flexible, than something bespoke like this.
+  (let ([possible-rx (possible-rx-for (script-rx script) available-rx)])
+   (for/list ([new-rx possible-rx])
+       (list substitute script new-rx))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Pharmacist tests.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(check-equal?
+ (valid-fill-options-for example-script (list (script-rx example-script)))
+ (list (list substitute example-script (script-rx example-script))))
 
