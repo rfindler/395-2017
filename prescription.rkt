@@ -110,8 +110,10 @@
 ;;     or, (mdb/any #:that-does-not-cause 'sleepiness #:that-will 'treat-depression)
 ;;     Then the pharmacist can execute the given query on their own database of available pills.
 ;; • sig-addtl-instructions interpreter that translates "po" to "by mouth," "qhs" to "before
-;      bed," etc.
+;;     bed," etc.
 ;; • generate-label: take a script and generate a reasonable label for the medication bottle.
+;; • better script validation - it should not be possible for instance to have
+;;     (redundant-count "••" 4).
 ;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -161,9 +163,14 @@
 ;; The function that translates the original script to its possibly substituted fulfillment.
 ;; TODO: adjust dosage, doses, ifneedbe. Change sig if necessary (maybe the substituted drug must be
 ;;       taken 2 at a time instead of 1 at a time, for instance, if it is half-dose size.)
-(define/contract (substitute script)
+(define/contract (substitute-rx script)
   (-> script/c script/c)
-  ;; TODO
+  ;; TODO: Should not be the same as exact-rx.
+  script)
+
+;; Make no change to rx. The "id" translation.
+(define/contract (exact-rx script)
+  (-> script/c script/c)
   script)
 
 ;; Find all the rx from a list of available rx that can be used in place of a given rx.
@@ -176,9 +183,10 @@
     (filter
       (λ (an-rx)
          (and
-           (equal? (rx-drug an-rx) intended-drug)
-           (equal? (rx-dosage an-rx) intended-dosage)
-           (equal? (rx-doses an-rx) intended-doses)))
+           (equal? (drug-name (rx-drug an-rx)) (drug-name intended-drug))
+           (equal? (dosage-amount (rx-dosage an-rx)) (dosage-amount intended-dosage))
+           (equal? (dosage-units (rx-dosage an-rx)) (dosage-units intended-dosage))
+           (>= (doses-count (rx-doses an-rx)) (doses-count intended-doses))))
       available-rx)))
 
 ;; Find all valid script-translation/c for a given script using only available-rx.
@@ -188,7 +196,10 @@
   ;;   a SQL query would be cleaner, more flexible, than something bespoke like this.
   (let ([possible-rx (possible-rx-for (script-rx script) available-rx)])
    (for/list ([new-rx possible-rx])
-       (list substitute script new-rx))))
+     (if (equal? (drug-name (rx-drug new-rx))
+                 (drug-name (rx-drug (script-rx script))))
+       (list exact-rx script new-rx)
+       (list substitute-rx script new-rx)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -198,5 +209,59 @@
 
 (check-equal?
  (valid-fill-options-for example-script (list (script-rx example-script)))
- (list (list substitute example-script (script-rx example-script))))
+ (list (list exact-rx example-script (script-rx example-script))))
+
+(define prilosec
+  ;; "doses" here means "stock" in the pharmacy
+  (rx (drug "Omeprazole") (dosage 20 "mg") (doses 1000)))
+(define minocycline
+  (rx (drug "Minocycline") (dosage 100 "mg") (doses 1000)))
+(define prescription-strength-tylenol
+  (rx (drug "Acetominophen") (dosage 325 "mg") (doses 10000)))
+(define probably-deadly-tylenol
+  (rx (drug "Acetominophen") (dosage 500 "mg") (doses 10000)))
+(define not-quite-same-zestril
+  (rx (drug "Zestril") (dosage 5 "mg") (doses 180)))
+
+(define some-rx
+  (list prilosec minocycline prescription-strength-tylenol probably-deadly-tylenol))
+
+(check-equal?
+  (valid-fill-options-for example-script some-rx)
+  '())
+
+(check-equal?
+  (valid-fill-options-for example-script (reverse (cons (script-rx example-script) some-rx)))
+  (list (list exact-rx example-script (script-rx example-script))))
+
+;; FIXME: this will currently fail.
+(check-equal?
+  (valid-fill-options-for example-script (cons not-quite-same-zestril some-rx))
+  (list (list substitute-rx example-script not-quite-same-zestril)))
+
+(define tylenol-script
+  (script
+   (patient "Mark" "The Zuck")
+   (rx (drug "Acetominophen") (dosage 500 "mg") (doses 1))
+   ;; NOTE: the unicode codepoint for • is 2022.
+   (sig (redundant-count "•" 1) (addtl '()))
+   "for your neighbor's annoying dog"))
+
+(check-equal?
+  (valid-fill-options-for tylenol-script some-rx)
+  (list (list exact-rx tylenol-script probably-deadly-tylenol)))
+
+(define unfillably-large-script
+  (script
+    (patient "Steve" "Jobs")
+    (rx (drug "Omeprazole") (dosage 20 "mg") (doses 1500))
+    (sig (redundant-count "•" 1) (addtl '("po" "qhs")))
+    "because tacos don't like you but you really like them"))
+
+;; TODO: partial fill? With some notification to the doctor. Add a "come back Tuesday" to the label.
+;;   Stuff like that. We should probably have a struct we can modify as-we-go that builds up these
+;;   sorts of things as they occur.
+(check-equal?
+  (valid-fill-options-for unfillably-large-script some-rx)
+  '())
 
