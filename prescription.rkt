@@ -300,14 +300,6 @@
   (struct/c signed
             script/c            ; script
             optional-string/c)) ; signature
-  #| (struct/c signed |#
-  #|           ;; FIXME do I really have to copy this? |#
-  #|           patient/c           ; patient |#
-  #|           rx/c                ; rx |#
-  #|           sig/c               ; sig |#
-  #|           optional-string/c   ; reason |#
-  #|           ; |#
-  #|           optional-string/c)) ; signature |#
 
 ;; Doctor signs the script.
 (define (doctor/sign-script script name)
