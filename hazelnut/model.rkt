@@ -611,8 +611,8 @@
    ----------------------------------------------------------------------------- "AS"
    (action-sensibility-1-post Γ e^_* τ_*)])
 
-#;
-(redex-check
+
+#;(redex-check
  HZ
  #:satisfying (action-sensibility-1-pre Γ e^ τ α e^_* τ_*)
  (begin
@@ -644,12 +644,11 @@
 
 
 ;; This doesn't generate any (move (child n*)) terms ...
-#;
-(redex-check
+#;(redex-check
  HZ
  #:satisfying (action-sensibility-2-pre Γ e^ τ α e^_*)
  (begin
-   (when #t
+   (when #f
      (printf "Γ = ~a\n" (term Γ))
      (printf "α = ~a\n" (term α))
      (printf "e^ = ~a\n" (term e^))
@@ -661,8 +660,8 @@
  #:attempts 1000)
 
 ;; movement erasure invariance 1
-#;
-(redex-check
+
+#;(redex-check
  HZ
  #:satisfying (--> (move δ) τ^ τ^_*)
  (begin
@@ -676,16 +675,17 @@
 (module+ test
   (test-results))
 
+(define-metafunction HZ
+  F : τ -> α*
+  [(F num) ((construct num) ·)]
+  [(F (-> τ_1 τ_2)) ·]
+  [(F τ) ·])
 
-
-
-
-
-
-
-
-
-
+(redex-check
+ HZ
+ τ
+ (equal? (judgment-holds (-->* (F τ) (▹ () ◃) (▹ τ_1 ◃)) τ_1)
+         (list (term τ))))
 
 
 
