@@ -140,6 +140,9 @@
 (define -body third)
 
 ;; This must be incomplete. But anyway.
+;; This needs to be capture-avoiding substitution. (See whiteboard photo.)
+;; Application with variable, occurrence where variable doesn't occur free in λ body.
+;; Add more of their examples and make sure they work.
 (define (replace-exp arg val exp)
   (match exp
     [`(build ,f) `(build ,(replace-exp arg val f))]
@@ -168,3 +171,17 @@
 
 ;; Completely expand our implementation of `unlines`.
 (pretty-print (expand-buildfn (libfn->buildfn `(flatten (map (λ (l) (append l '("\n"))) ls)))))
+
+;; ^ Turn this into a macro. syntax-rules
+(define-syntax-rule (define-rule var lhs rhs)
+  (define (var exp)
+    (match exp
+        [lhs rhs]
+        [(? list?) (map var exp)]
+        [e e])))
+
+(define-rule fold-build-rule `(((foldr ,k) ,z) (build ,g)) `((,g ,k) ,z))
+
+;; Keep running until a fixed point using a list of rules iterating over them.
+;; ^ May not always terminate.
+
