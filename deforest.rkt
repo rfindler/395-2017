@@ -1,5 +1,8 @@
 #lang racket
 
+(define-namespace-anchor a)
+(define ns (namespace-anchor->namespace a))
+
 ;; Let's write up the example optimized "all" for practice.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -21,7 +24,9 @@
 ;; Okay next up. Let's define build.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (build g) (g cons '()))
+(define -build
+  `(define (build g) (g cons '())))
+(eval -build ns)
 ;; ^^ Essentially: partial application of g with cons and '().!
 
 ;; Let's do the from example.
@@ -34,28 +39,38 @@
     (cons a (from (+ a 1) b))))
 
 ;; from’
-(define (from’ a b)
-  (λ (c n)
-     (if (> a b)
-       n
-       (c a ((from’ (+ a 1) b) c n)))))
+(define -from’
+  `(define (from’ a b)
+    (λ (c n)
+       (if (> a b)
+         n
+         (c a ((from’ (+ a 1) b) c n))))))
+(eval -from’ ns)
 
 ;; Verify from’ is spiritually equal to from.
-(andmap equal? (from 0 5) (build (from’ 0 5)))
+(eval `(andmap equal? (from 0 5) (build (from’ 0 5))) ns)
 
 ;; Nice! We can see that these things work, just like the paper said. (Whodathunk.)
 ;; Let's build the (build) stdlib.
-(define (map’ f xs)
-  (build (λ (c n) (foldr (λ (a b) (c (f a) b)) n xs))))
+(define -map’
+  `(define (map’ f xs)
+    (build (λ (c n) (foldr (λ (a b) (c (f a) b)) n xs)))))
+(eval -map’ ns)
 
-(define (filter’ f xs)
-  (build (λ (c n) (foldr (λ (a b) (if (f a) (c a b) b)) n xs))))
+(define -filter’
+  `(define (filter’ f xs)
+    (build (λ (c n) (foldr (λ (a b) (if (f a) (c a b) b)) n xs)))))
+(eval -filter’ ns)
 
-(define (++’ xs ys)
-  (build (λ (c n) (foldr c (foldr c n ys) xs))))
+(define -++’
+  `(define (++’ xs ys)
+    (build (λ (c n) (foldr c (foldr c n ys) xs)))))
+(eval -++’ ns)
 
-(define (concat’ xs)
-  (build (λ (c n) (foldr (λ (x y) (foldr c y x)) n xs))))
+(define -concat’
+  `(define (concat’ xs)
+    (build (λ (c n) (foldr (λ (x y) (foldr c y x)) n xs)))))
+(eval -concat’ ns)
 
 ;; Seems non-trivial to create an infinite list in Racket to mimic repeat.
 ;; Would I need Streams here? Not that important.
@@ -64,29 +79,35 @@
 
 #| (repeat’ 5)              |#
 
-(define (zip’ xs ys)
-  (build (λ (c n) (if (and (not (empty? xs)) (not (empty? ys)))
-                      (c `(,(first xs) ,(first ys)) (zip’ (rest xs) (rest ys)))
-                      n))))
+(define -zip’
+  `(define (zip’ xs ys)
+    (build (λ (c n) (if (and (not (empty? xs)) (not (empty? ys)))
+                        (c `(,(first xs) ,(first ys)) (zip’ (rest xs) (rest ys)))
+                        n)))))
+(eval -zip’ ns)
 
-(define nil’ (build (λ (c n) n)))
+(define -nil’
+  `(define nil’ (build (λ (c n) n))))
+(eval -nil’ ns)
 
-(define (cons’ x xs) (build (λ (c n) (c x (foldr c n xs)))))
+(define -cons’
+  `(define (cons’ x xs) (build (λ (c n) (c x (foldr c n xs))))))
+(eval -cons’ ns)
 
 ;; Verify loosely/informally that these behave more-or-less as expected.
-(map’ - '(1 2 3))
+(eval `(map’ - '(1 2 3)) ns)
 
-(filter’ number? '(1 2 "a" "b" 4 "c"))
+(eval `(filter’ number? '(1 2 "a" "b" 4 "c")) ns )
 
-(++’ '(1 2) '(3 4))
+(eval `(++’ '(1 2) '(3 4)) ns)
 
-(concat’ '((1) (2 3) (4 5 6)))
+(eval `(concat’ '((1) (2 3) (4 5 6))) ns)
 
-(zip’ '(1 2 3) '("a" "b" "c"))
+(eval `(zip’ '(1 2 3) '("a" "b" "c")) ns)
 
-nil’
+(eval `nil’ ns)
 
-(cons’ 5 '(4 3 2 1))
+(eval `(cons’ 5 '(4 3 2 1)) ns)
 
 ;; Now let's do some kind of actual work.
 ;; Convert unlines to use build-based library functions.
@@ -107,9 +128,19 @@ nil’
     [e e]))
 
 ;; Racket namespace nonsense...
-(define-namespace-anchor a)
-(let ([ns (namespace-anchor->namespace a)])
-  (letrec ([ls '("asjfkld fdsajkf " " Afdsjkalfjdlksa f"  "fdsjalkf jlksafj dslka")]
-           [bexp (libfn->buildfn `(flatten (map (λ (l) (append `(,l) '("\n"))) ',ls)))])
-    (eval bexp ns)))
+(letrec ([ls '("asjfkld fdsajkf " " Afdsjkalfjdlksa f"  "fdsjalkf jlksafj dslka")]
+         [bexp (libfn->buildfn `(flatten (map (λ (l) (append `(,l) '("\n"))) ',ls)))])
+  (eval bexp ns))
 ;; But hey, the transformation is (roughly) working on the body of unlines.
+
+;; Let's try expanding buildfns using their bodies.
+(define (expand-buildfn exp)
+  (match exp
+    [`(concat’ ,xs)   #f]
+    [`(++’ ,xs ,ys)   #f]
+    [`(map’ ,f ,xs)   #f]
+    [`(λ ,args ,body) #f]
+    [e e]))
+
+(expand-buildfn `(concat’ '((a b c) (d e f))))
+
