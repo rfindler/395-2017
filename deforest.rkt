@@ -145,3 +145,7 @@
 
 (expand-buildfn `(concat’ '((a b c) (d e f))))
 
+;; Oh man this is awful. What have I done.
+(define -body third)
+(-body -build)
+
