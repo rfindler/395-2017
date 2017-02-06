@@ -110,9 +110,10 @@
 ;; Now let's do some kind of actual work.
 ;; Convert unlines to use build-based library functions.
 ;; In Haskell, strings are lists, which means racket don't do that... So we fake it.
-(define (unlines ls) (flatten (map (λ (l) (append `(,l) '("\n"))) ls)))
+(define (unlines ls) (flatten (map (λ (l) (append l '("\n"))) ls)))
 
-(unlines '("abcjks jdkl aflkjdsa jfls" "jfdslajf kslaj flskdajf" " fjdsaklfj lksaj fds"))
+(define ls '(("t" "h" "i" "s") () ("s" "u" "c" "K" "s")))
+(unlines ls)
 
 ;; flatten -> concat’
 ;; append  -> append’
@@ -125,8 +126,6 @@
     [`'(,elt) `(cons’ ,elt nil’)]
     [`(λ ,args ,body) `(λ ,args ,(libfn->buildfn body))]
     [e e]))
-
-(define ls '(("t" "h" "i" "s") () ("s" "u" "c" "K" "s")))
 
 (libfn->buildfn `(append l '("\n")))
 
