@@ -139,7 +139,6 @@
 
 ;; Oh man this is awful. What have I done.
 (define -body third)
-(-body -build)
 
 ;; This must be incomplete. But anyway.
 (define (replace-exp arg val exp)
@@ -165,15 +164,8 @@
     [`(λ ,args ,body) `(λ ,(expand-buildfn args) ,(expand-buildfn body))]
     [e e]))
 
-(displayln "---")
-(-body -map’)
-
 (eval (expand-buildfn `(concat’ '((a b c) (d e f)))) ns)
 (eval (expand-buildfn `(++’ '(a b c) '(d e f))) ns)
 
 ;; Completely expand our implementation of `unlines`.
-(expand-buildfn (libfn->buildfn `(append l '("\n"))))
-(-body -map’)
-(expand-buildfn (libfn->buildfn `(λ (l) (append l '("\n")))))
-(expand-buildfn (libfn->buildfn `(map (λ (l) (append l '("\n"))) ls)))
 (pretty-print (expand-buildfn (libfn->buildfn `(flatten (map (λ (l) (append l '("\n"))) ls)))))
