@@ -136,24 +136,24 @@
 (-body -build)
 
 ;; This must be incomplete. But anyway.
-(define (replace-arg arg val exp)
+(define (replace-exp arg val exp)
   (match exp
-    [`(build ,f) `(build ,(replace-arg arg val f))]
-    [`(λ ,args ,body) `(λ ,args ,(replace-arg arg val body))]
-    [`(foldr ,f ,z ,l) `(foldr ,(replace-arg arg val f)
-                               ,(replace-arg arg val z)
-                               ,(replace-arg arg val l))]
-    [e #:when (list? e) (map (curry replace-arg arg val) e)]
+    [`(build ,f) `(build ,(replace-exp arg val f))]
+    [`(λ ,args ,body) `(λ ,args ,(replace-exp arg val body))]
+    [`(foldr ,f ,z ,l) `(foldr ,(replace-exp arg val f)
+                               ,(replace-exp arg val z)
+                               ,(replace-exp arg val l))]
+    [e #:when (list? e) (map (curry replace-exp arg val) e)]
     [e (if (equal? e arg) val e)]))
 
 ;; Who needs efficiency?!
 (define (expand-buildfn exp)
   (match exp
-    [`(concat’ ,xs)   (replace-arg 'xs (expand-buildfn xs) (-body -concat’))]
-    [`(++’ ,xs ,ys)   (replace-arg 'ys (expand-buildfn ys)
-                                   (replace-arg 'xs (expand-buildfn xs) (-body -++’)))]
-    [`(map’ ,f ,xs)   (replace-arg 'f (expand-buildfn f)
-                                   (replace-arg 'xs (expand-buildfn xs) (-body -map’)))]
+    [`(concat’ ,xs)   (replace-exp 'xs (expand-buildfn xs) (-body -concat’))]
+    [`(++’ ,xs ,ys)   (replace-exp 'ys (expand-buildfn ys)
+                                   (replace-exp 'xs (expand-buildfn xs) (-body -++’)))]
+    [`(map’ ,f ,xs)   (replace-exp 'f (expand-buildfn f)
+                                   (replace-exp 'xs (expand-buildfn xs) (-body -map’)))]
     [`(λ ,args ,body) `(λ ,(expand-buildfn args) ,(expand-buildfn body))]
     [e e]))
 
@@ -165,5 +165,7 @@
 
 ;; Completely expand our implementation of `unlines`.
 (expand-buildfn (libfn->buildfn `(append `(,l) '("\n"))))
-(eval (expand-buildfn (libfn->buildfn `(map (λ (l) (append `(,l) '("\n"))) ls))) ns)
+(-body -map’)
+(expand-buildfn (libfn->buildfn `(λ (l) (append `(,l) '("\n")))))
+(expand-buildfn (libfn->buildfn `(map (λ (l) (append `(,l) '("\n"))) ls)))
 (pretty-print (expand-buildfn (libfn->buildfn `(flatten (map (λ (l) (append `(,l) '("\n"))) ls)))))
