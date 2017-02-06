@@ -1,5 +1,6 @@
 #lang racket
 
+;; Racket namespace nonsense...
 (define-namespace-anchor a)
 (define ns (namespace-anchor->namespace a))
 
@@ -127,7 +128,7 @@
     [`(λ ,args ,body) `(λ ,args ,(libfn->buildfn body))]
     [e e]))
 
-;; Racket namespace nonsense...
+;; Let's actually try to run it!
 (letrec ([ls '("asjfkld fdsajkf " " Afdsjkalfjdlksa f"  "fdsjalkf jlksafj dslka")]
          [bexp (libfn->buildfn `(flatten (map (λ (l) (append `(,l) '("\n"))) ',ls)))])
   (eval bexp ns))
