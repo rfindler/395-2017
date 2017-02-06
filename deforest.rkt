@@ -122,24 +122,48 @@
     [`(λ ,args ,body) `(λ ,args ,(libfn->buildfn body))]
     [e e]))
 
+(define ls '("asjfkld fdsajkf " " Afdsjkalfjdlksa f"  "fdsjalkf jlksafj dslka"))
+
 ;; Let's actually try to run it!
-(letrec ([ls '("asjfkld fdsajkf " " Afdsjkalfjdlksa f"  "fdsjalkf jlksafj dslka")]
-         [bexp (libfn->buildfn `(flatten (map (λ (l) (append `(,l) '("\n"))) ',ls)))])
+(letrec ([bexp (libfn->buildfn `(flatten (map (λ (l) (append `(,l) '("\n"))) ',ls)))])
   (eval bexp ns))
 ;; But hey, the transformation is (roughly) working on the body of unlines.
 
 ;; Let's try expanding buildfns using their bodies.
-(define (expand-buildfn exp)
-  (match exp
-    [`(concat’ ,xs)   #f]
-    [`(++’ ,xs ,ys)   #f]
-    [`(map’ ,f ,xs)   #f]
-    [`(λ ,args ,body) #f]
-    [e e]))
-
-(expand-buildfn `(concat’ '((a b c) (d e f))))
 
 ;; Oh man this is awful. What have I done.
 (define -body third)
 (-body -build)
 
+;; This must be incomplete. But anyway.
+(define (replace-arg arg val exp)
+  (match exp
+    [`(build ,f) `(build ,(replace-arg arg val f))]
+    [`(λ ,args ,body) `(λ ,args ,(replace-arg arg val body))]
+    [`(foldr ,f ,z ,l) `(foldr ,(replace-arg arg val f)
+                               ,(replace-arg arg val z)
+                               ,(replace-arg arg val l))]
+    [e #:when (list? e) (map (curry replace-arg arg val) e)]
+    [e (if (equal? e arg) val e)]))
+
+;; Who needs efficiency?!
+(define (expand-buildfn exp)
+  (match exp
+    [`(concat’ ,xs)   (replace-arg 'xs (expand-buildfn xs) (-body -concat’))]
+    [`(++’ ,xs ,ys)   (replace-arg 'ys (expand-buildfn ys)
+                                   (replace-arg 'xs (expand-buildfn xs) (-body -++’)))]
+    [`(map’ ,f ,xs)   (replace-arg 'f (expand-buildfn f)
+                                   (replace-arg 'xs (expand-buildfn xs) (-body -map’)))]
+    [`(λ ,args ,body) `(λ ,(expand-buildfn args) ,(expand-buildfn body))]
+    [e e]))
+
+(displayln "---")
+(-body -map’)
+
+(eval (expand-buildfn `(concat’ '((a b c) (d e f)))) ns)
+(eval (expand-buildfn `(++’ '(a b c) '(d e f))) ns)
+
+;; Completely expand our implementation of `unlines`.
+(expand-buildfn (libfn->buildfn `(append `(,l) '("\n"))))
+(eval (expand-buildfn (libfn->buildfn `(map (λ (l) (append `(,l) '("\n"))) ls))) ns)
+(pretty-print (expand-buildfn (libfn->buildfn `(flatten (map (λ (l) (append `(,l) '("\n"))) ls)))))
