@@ -12,12 +12,6 @@
   (if (empty? xs) #t
       (and (p (first xs)) (all’ p (rest xs)))))
 
-;; That's a "deforested" program. This is what we'd rather write:
-;; (Excluding the && hack to make `and` not think it's special...)
-(define (&& a b) (and a b))
-(define (crude-all p xs) (foldr && #t (map p xs)))
-
-;; ... Alternatively, it just occurred to me we can use andmap. That's more rackety.
 (define (all p xs) (andmap p xs))
 
 (and (all number? '(5 5 5)) (all’ number? '(5 5 5)))
