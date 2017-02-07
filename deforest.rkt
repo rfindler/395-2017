@@ -192,6 +192,7 @@
         `(λ (,new-arg) ,(replace-exp exp val (replace-exp arg new-arg lbody))))]
     [e #:when (equal? e exp) val]
     [(? list?) (map (curry replace-exp exp val) body)]
+    ;; Right now, the only case activated by expand-buildfn is this last one. The dumb one.
     [e e]))
     ;[e (error 'replace-broke)]))
 
