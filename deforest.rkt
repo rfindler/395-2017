@@ -193,14 +193,18 @@
     [e e]))
     ;[e (error 'replace-broke)]))
 
-(check-equal? (replace-exp 'x 5 `((λ (x) (+ x x)) x))
-        `((λ (x) (+ x x)) 5))
-(check-equal? (replace-exp 'x '3 `(λ (y) (λ (y) (+ y x))))
-        `(λ (y) (λ (y) (+ y 3))))
-(check-equal? (replace-exp 'a 7 `(λ (b0) ((λ (b) (+ b0 b a)) b0)))
-        `(λ (b0) ((λ (b) (+ b0 b 7)) b0)))
-(check-equal? (replace-exp 'x 4 `(λ (x0) (+ x x1)))
-        `(λ (x0) (+ 4 x1)))
+(check-equal?
+  (replace-exp 'x 5 `((λ (x) (+ x x)) x))
+  `((λ (x) (+ x x)) 5))
+(check-equal?
+  (replace-exp 'x '3 `(λ (y) (λ (y) (+ y x))))
+  `(λ (y) (λ (y) (+ y 3))))
+(check-equal?
+  (replace-exp 'a 7 `(λ (b0) ((λ (b) (+ b0 b a)) b0)))
+  `(λ (b0) ((λ (b) (+ b0 b 7)) b0)))
+(check-equal?
+  (replace-exp 'x 4 `(λ (x0) (+ x x1)))
+  `(λ (x0) (+ 4 x1)))
 
 ;; Who needs efficiency?!
 (define (expand-buildfn exp)
