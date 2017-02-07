@@ -143,15 +143,13 @@
 ;; This needs to be capture-avoiding substitution. (See whiteboard photo.)
 ;; Application with variable, occurrence where variable doesn't occur free in λ body.
 ;; Add more of their examples and make sure they work.
-(define (replace-exp arg val exp)
-  (match exp
-    [`(build ,f) `(build ,(replace-exp arg val f))]
-    [`(λ ,args ,body) `(λ ,args ,(replace-exp arg val body))]
-    [`(foldr ,f ,z ,l) `(foldr ,(replace-exp arg val f)
-                               ,(replace-exp arg val z)
-                               ,(replace-exp arg val l))]
-    [e #:when (list? e) (map (curry replace-exp arg val) e)]
-    [e (if (equal? e arg) val e)]))
+(define (replace-exp exp val body)
+  (match body
+    ;; This is the interesting case:
+    [`(λ ,args ,lbody) `(λ ,args ,(replace-exp exp val lbody))]
+    [(? list?) (map (curry replace-exp exp val) body)]
+    [(? symbol?) (if (equal? body exp) val body)]
+    [e (error 'replace-broke)]))
 
 ;; Who needs efficiency?!
 (define (expand-buildfn exp)
