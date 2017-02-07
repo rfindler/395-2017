@@ -241,7 +241,14 @@
         [(? list?) (map rule-name exp)]
         [e e])))
 
-(define-rule fold-build-rule `(((foldr ,k) ,z) (build ,g)) `((,g ,k) ,z))
+(define-rule collapse-fold-build `(((foldr ,k) ,z) (build ,g)) `((,g ,k) ,z))
+(check-equal? (collapse-fold-build `(((foldr +) 0) (build ,(-body -map’)))) `((,(-body -map’) +) 0))
+
+(define-rule collapse-fold-nil `(foldr cons '() ',xs) xs)
+(check-equal? (collapse-fold-nil `(foldr cons '() '(a b c)))
+              '(a b c))
+;(define-rule β-reduction/constant `((λ ,a ,b) (? number?)) ???)
+;(define-rule β-reduction/variable `((λ ,a ,b) ,v) ???)
 
 ;; Keep running until a fixed point using a list of rules iterating over them.
 ;; ^ May not always terminate. (Depends on β-reductions.)
