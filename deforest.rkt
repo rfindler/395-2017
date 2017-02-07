@@ -2,14 +2,16 @@
 
 (require rackunit)
 
+;; NOTE(jordan): codepoints:
+;; ’ 2019
+;; β 03b2
+
 ;; Racket namespace nonsense...
 (define-namespace-anchor a)
 (define ns (namespace-anchor->namespace a))
 
 ;; Let's write up the example optimized "all" for practice.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; NOTE(jordan): ’ codepoint is 2019.
 (define (all’ p xs)
   (if (empty? xs) #t
       (and (p (first xs)) (all’ p (rest xs)))))
@@ -241,5 +243,5 @@
 (define-rule fold-build-rule `(((foldr ,k) ,z) (build ,g)) `((,g ,k) ,z))
 
 ;; Keep running until a fixed point using a list of rules iterating over them.
-;; ^ May not always terminate.
+;; ^ May not always terminate. (Depends on β-reductions.)
 
