@@ -231,11 +231,11 @@
 (pretty-print (expand-buildfn (libfn->buildfn `(flatten (map (λ (l) (append l '("\n"))) ls)))))
 
 ;; Use this macro to define one rule at a time.
-(define-syntax-rule (define-rule var lhs rhs)
-  (define (var exp)
+(define-syntax-rule (define-rule rule-name lhs rhs)
+  (define (rule-name exp)
     (match exp
         [lhs rhs]
-        [(? list?) (map var exp)]
+        [(? list?) (map rule-name exp)]
         [e e])))
 
 (define-rule fold-build-rule `(((foldr ,k) ,z) (build ,g)) `((,g ,k) ,z))
