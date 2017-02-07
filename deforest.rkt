@@ -221,7 +221,7 @@
 ;; Completely expand our implementation of `unlines`.
 (pretty-print (expand-buildfn (libfn->buildfn `(flatten (map (λ (l) (append l '("\n"))) ls)))))
 
-;; ^ Turn this into a macro. syntax-rules
+;; Use this macro to define one rule at a time.
 (define-syntax-rule (define-rule var lhs rhs)
   (define (var exp)
     (match exp
