@@ -208,6 +208,9 @@
 (check-equal?
   (replace-exp 'x 4 `(λ (x0) (+ x x1)))
   `(λ (x0) (+ 4 x1)))
+(check-equal?
+  (replace-exp 'y 'x `(λ (x) (+ x0 x)))
+  `(λ (x1) (+ x0 x1)))
 ;; I feel like I am missing an edge case. (Or two. Or three.) But I don't know which.
 
 ;; Who needs efficiency?!
