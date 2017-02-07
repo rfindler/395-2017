@@ -1,5 +1,7 @@
 #lang racket
 
+(require rackunit)
+
 ;; Racket namespace nonsense...
 (define-namespace-anchor a)
 (define ns (namespace-anchor->namespace a))
@@ -14,7 +16,7 @@
 
 (define (all p xs) (andmap p xs))
 
-(and (all number? '(5 5 5)) (all’ number? '(5 5 5)))
+(check-true (and (all number? '(5 5 5)) (all’ number? '(5 5 5))))
 
 ;; Okay next up. Let's define build.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -43,7 +45,7 @@
 (eval -from’ ns)
 
 ;; Verify from’ is spiritually equal to from.
-(eval `(andmap equal? (from 0 5) (build (from’ 0 5))) ns)
+(check-true (eval `(andmap equal? (from 0 5) (build (from’ 0 5))) ns))
 
 ;; Nice! We can see that these things work, just like the paper said. (Whodathunk.)
 ;; Let's build the (build) stdlib.
@@ -93,19 +95,26 @@
   `(define (cons’ x nil’) (build (λ (c n) (c x n)))))
 
 ;; Verify loosely/informally that these behave more-or-less as expected.
-(eval `(map’ - '(1 2 3)) ns)
+(check-equal? (eval `(map’ - '(1 2 3)) ns)
+              '(-1 -2 -3))
 
-(eval `(filter’ number? '(1 2 "a" "b" 4 "c")) ns )
+(check-equal? (eval `(filter’ number? '(1 2 "a" "b" 4 "c")) ns )
+              '(1 2 4))
 
-(eval `(++’ '(1 2) '(3 4)) ns)
+(check-equal? (eval `(++’ '(1 2) '(3 4)) ns)
+              '(1 2 3 4))
 
-(eval `(concat’ '((1) (2 3) (4 5 6))) ns)
+(check-equal? (eval `(concat’ '((1) (2 3) (4 5 6))) ns)
+              '(1 2 3 4 5 6))
 
-(eval `(zip’ '(1 2 3) '("a" "b" "c")) ns)
+(check-equal? (eval `(zip’ '(1 2 3) '("a" "b" "c")) ns)
+              '((1 "a") (2 "b") (3 "c")))
 
-(eval `nil’ ns)
+(check-equal? (eval `nil’ ns)
+              '())
 
-(eval `(cons’ 5 '(4 3 2 1)) ns)
+(check-equal? (eval `(cons’ 5 '(4 3 2 1)) ns)
+              '(5 4 3 2 1))
 
 ;; Now let's do some kind of actual work.
 ;; Convert unlines to use build-based library functions.
@@ -113,7 +122,8 @@
 (define (unlines ls) (flatten (map (λ (l) (append l '("\n"))) ls)))
 
 (define ls '(("t" "h" "i" "s") () ("s" "u" "c" "K" "s")))
-(unlines ls)
+(check-equal? (unlines ls)
+              '("t" "h" "i" "s" "\n" "\n" "s" "u" "c" "K" "s" "\n"))
 
 ;; flatten -> concat’
 ;; append  -> append’
@@ -127,11 +137,12 @@
     [`(λ ,args ,body) `(λ ,args ,(libfn->buildfn body))]
     [e e]))
 
-(libfn->buildfn `(append l '("\n")))
+(check-equal? (libfn->buildfn `(append l '("\n")))
+              '(++’ l (cons’ "\n" nil’)))
 
 ;; Let's actually try to run it!
 (letrec ([bexp (libfn->buildfn `(flatten (map (λ (l) (append l '("\n"))) ',ls)))])
-  (display (apply string-append (eval bexp ns))))
+  (check-equal? (apply string-append (eval bexp ns)) "this\n\nsucKs\n"))
 ;; But hey, the transformation is (roughly) working on the body of unlines.
 
 ;; Let's try expanding buildfns using their bodies.
@@ -164,8 +175,8 @@
     [`(λ ,args ,body) `(λ ,(expand-buildfn args) ,(expand-buildfn body))]
     [e e]))
 
-(eval (expand-buildfn `(concat’ '((a b c) (d e f)))) ns)
-(eval (expand-buildfn `(++’ '(a b c) '(d e f))) ns)
+(check-equal? (eval (expand-buildfn `(concat’ '((a b c) (d e f)))) ns) '(a b c d e f))
+(check-equal? (eval (expand-buildfn `(++’ '(a b c) '(d e f))) ns) '(a b c d e f))
 
 ;; Completely expand our implementation of `unlines`.
 (pretty-print (expand-buildfn (libfn->buildfn `(flatten (map (λ (l) (append l '("\n"))) ls)))))
