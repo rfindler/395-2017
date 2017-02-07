@@ -154,13 +154,53 @@
 ;; This needs to be capture-avoiding substitution. (See whiteboard photo.)
 ;; Application with variable, occurrence where variable doesn't occur free in λ body.
 ;; Add more of their examples and make sure they work.
+;; Replace all free occurrences of exp with val in body.
+(define (symbol-add-suffix s1 s2)
+  (string->symbol (string-append (symbol->string s1) (~a s2))))
+
+(check-equal? (symbol-add-suffix 'a 5) 'a5)
+
+(define (not-in exp var)
+  (match exp
+    [(? list?) (andmap (λ (e) (not-in e var)) exp)]
+    [e (not (equal? e var))]))
+
+(check-false (not-in 'x 'x))
+(check-false (not-in '(λ (x) (+ x 17)) 'x))
+(check-true (not-in 'y 'x))
+(check-true (not-in '(λ (x) (λ (y) (+ x y))) 'z))
+
+(define (unused-suffix-in e x)
+  (for/first ([suf (stream-cons "" (in-naturals))]
+             #:when (not-in e (symbol-add-suffix x suf)))
+    (symbol-add-suffix x suf)))
+
+(check-equal? (unused-suffix-in `(x x0 x1 x2 x3) 'x) 'x4)
+(check-equal? (unused-suffix-in `(x0 x1 x2 x3) 'x) 'x)
+(check-equal? (unused-suffix-in `(x0 x1 x2 x3) 'x0) 'x00)
+
 (define (replace-exp exp val body)
   (match body
+    [`(λ (,arg) ,lbody) #:when (equal? arg exp)
+      ;; exp == argument; do no substitution.
+      `(λ (,arg) ,lbody)]
     ;; This is the interesting case:
-    [`(λ ,args ,lbody) `(λ ,args ,(replace-exp exp val lbody))]
+    [`(λ (,arg) ,lbody) #:when (symbol? exp)
+      (let ([new-arg (unused-suffix-in `(,exp ,val) arg)])
+        `(λ (,new-arg) ,(replace-exp exp val (replace-exp arg new-arg lbody))))]
+    [e #:when (equal? e exp) val]
     [(? list?) (map (curry replace-exp exp val) body)]
-    [(? symbol?) (if (equal? body exp) val body)]
-    [e (error 'replace-broke)]))
+    [e e]))
+    ;[e (error 'replace-broke)]))
+
+(check-equal? (replace-exp 'x 5 `((λ (x) (+ x x)) x))
+        `((λ (x) (+ x x)) 5))
+(check-equal? (replace-exp 'x '3 `(λ (y) (λ (y) (+ y x))))
+        `(λ (y) (λ (y) (+ y 3))))
+(check-equal? (replace-exp 'a 7 `(λ (b0) ((λ (b) (+ b0 b a)) b0)))
+        `(λ (b0) ((λ (b) (+ b0 b 7)) b0)))
+(check-equal? (replace-exp 'x 4 `(λ (x0) (+ x x1)))
+        `(λ (x0) (+ 4 x1)))
 
 ;; Who needs efficiency?!
 (define (expand-buildfn exp)
