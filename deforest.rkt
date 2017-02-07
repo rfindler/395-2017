@@ -210,11 +210,15 @@
 ;; Who needs efficiency?!
 (define (expand-buildfn exp)
   (match exp
-    [`(concat’ ,xs)   (replace-exp 'xs (expand-buildfn xs) (-body -concat’))]
-    [`(++’ ,xs ,ys)   (replace-exp 'ys (expand-buildfn ys)
-                                   (replace-exp 'xs (expand-buildfn xs) (-body -++’)))]
-    [`(map’ ,f ,xs)   (replace-exp 'f (expand-buildfn f)
-                                   (replace-exp 'xs (expand-buildfn xs) (-body -map’)))]
+    [`(concat’ ,xs) (replace-exp 'xs
+                                 (expand-buildfn xs)
+                                 (-body -concat’))]
+    [`(++’ ,xs ,ys) (replace-exp 'ys
+                                 (expand-buildfn ys)
+                                 (replace-exp 'xs (expand-buildfn xs) (-body -++’)))]
+    [`(map’ ,f ,xs) (replace-exp 'f
+                                 (expand-buildfn f)
+                                 (replace-exp 'xs (expand-buildfn xs) (-body -map’)))]
     ;; God this is sickening.
     [`(cons’ ,x nil’) (replace-exp 'x x (-body -cons’-nil’))]
     [`(λ ,args ,body) `(λ ,(expand-buildfn args) ,(expand-buildfn body))]
