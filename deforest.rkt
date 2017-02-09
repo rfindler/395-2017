@@ -91,9 +91,16 @@
 (eval `((filter’ number?) '(1 "a" 3)) ns)
 
 (define -++’
-  `(define (++’ xs ys)
-    (build (λ (c n) (foldr c (foldr c n ys) xs)))))
+  `(define ++’
+     (λ (xs)
+        (λ (ys)
+           (build
+             (λ (c)
+                (λ (n)
+                   (((foldr c) (((foldr c) n) ys)) xs))))))))
 (eval -++’ ns)
+
+(eval `((++’ '(1 2)) '(3 4)) ns)
 
 (define -concat’
   `(define (concat’ xs)
