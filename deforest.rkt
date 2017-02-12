@@ -259,7 +259,7 @@
       ;; exp == argument; do no substitution.
       `(λ (,arg) ,lbody)]
     ;; This is the interesting case:
-    [`(λ (,arg) ,lbody) #:when (symbol? exp)
+    [`(λ (,arg) ,lbody) #:when (and (symbol? exp) (not (not-in val arg)))
       (let ([new-arg (unused-suffix-in body arg)])
         `(λ (,new-arg) ,(replace-exp exp val (replace-exp arg new-arg lbody))))]
     [e #:when (equal? e exp) val]
@@ -268,24 +268,37 @@
     [e e]))
     ;[e (error 'replace-broke)]))
 
+;; Don't do any renaming if you don't need to I.
 (check-equal?
   (replace-exp 'x 5 `((λ (x) (+ x x)) x))
   `((λ (x) (+ x x)) 5))
+;; Don't do any renaming if you don't need to II.
 (check-equal?
   (replace-exp 'x '3 `(λ (y) (λ (y) (+ y x))))
-  `(λ (y0) (λ (y0) (+ y0 3))))
-#;(check-equal?
+  `(λ (y) (λ (y) (+ y 3))))
+;; Don't do any renaming if you don't need to III.
+(check-equal?
   (replace-exp 'a 7 `(λ (b0) ((λ (b) (+ b0 b a)) b0)))
   `(λ (b0) ((λ (b) (+ b0 b 7)) b0)))
-#;(check-equal?
+;; Replace a free variable with a value.
+(check-equal?
   (replace-exp 'x 4 `(λ (x0) (+ x x1)))
   `(λ (x0) (+ 4 x1)))
+;; Do NOT replace a bound variable.
+(check-equal?
+  (replace-exp 'x 4 `(λ (x) (+ x x1)))
+  `(λ (x) (+ x x1)))
+;; We MIGHT replace y with x but x is bound, so rename.
 (check-equal?
   (replace-exp 'y 'x `(λ (x) (+ x0 x)))
   `(λ (x1) (+ x0 x1)))
-;; I feel like I am missing an edge case. (Or two. Or three.) But I don't know which.
+;; We WILL replace x with y but y is bound.
+(check-equal?
+  (replace-exp 'x 'y `(λ (y) (+ x y)))
+  `(λ (y0) (+ y y0)))
 
 ;; Who needs efficiency?!
+;; UGH I'm using replace-exp but I need to be able to substitute into a lambda...
 (define (expand-buildfn exp)
   (match exp
     [`(concat’ ,xs) (replace-exp 'xs
