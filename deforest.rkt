@@ -303,6 +303,7 @@
     [e e]))
 
 (expand-buildfn `(concat’ '((a b c) (d e f))))
+;; ^^ This isn't keeping my arguments.
 (expand-buildfn `((++’ '(a b c)) '(d e f)))
 (check-equal? (eval (expand-buildfn `(concat’ '((a b c) (d e f)))) ns) '(a b c d e f))
 (check-equal? (eval (expand-buildfn `((++’ '(a b c)) '(d e f))) ns) '(a b c d e f))
