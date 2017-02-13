@@ -326,6 +326,8 @@
     [`((zip’ ,xs) ,ys) `((,(-body -zip’) ,(expand-buildfn xs))  ,(expand-buildfn ys))]
     [`((cons’ ,x) nil’) (replace-exp 'x x (-body -cons’-nil’))]
     [`((cons’ ,hd) ,tl) `((,(-body -cons’) ,(expand-buildfn hd)) ,(expand-buildfn tl))]
+    ;; Non-library functions.
+    ;;--------------------------------------------------------------------------------------
     [`(sum’ ,xs) `(,(-body -sum’) ,(expand-buildfn xs))]
     [`((from2 ,a) ,b) `((,(-body -from2) ,(expand-buildfn a)) ,(expand-buildfn b))]
     [`(λ (,a) ,b) `(λ (,a) ,(expand-buildfn b))]
