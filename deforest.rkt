@@ -22,7 +22,9 @@
 
 (check-true (and (all number? '(5 5 5)) (all’ number? '(5 5 5))))
 
-;; Okay next up. Let's define build.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Okay next up. Let's define build and foldr for our transformations.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define -:
   `(define :
@@ -365,17 +367,16 @@
         [e e]))
 
 (define constant/c (or/c string? number?))
-
 (define-rule β-reduction/constant
              `((λ (,a) ,b) ,(? constant/c x))
              (replace-exp a x b))
+
 (define quote-list?
   (λ (x)
      (and
        (list? x)
        (equal? (first x) 'quote)
        ((or/c (listof constant/c) (listof (listof constant/c))) (second x)))))
-
 (define-rule β-reduction/list
              `((λ (,a) ,b) ,(? quote-list? x))
              (replace-exp a x b))
@@ -550,10 +551,10 @@
   (deforest-fxpt-inner exp '()))
 
 ;; The composition of multiple operations reduces nicely.
-;(deforest-fxpt `(sum’ ((from2 0) 5)))
+;(pretty-print (deforest-fxpt `(sum’ ((from2 0) 5))))
 
 ;; The way that functions are defined is very important. They must be properly generalized.
-;(deforest-fxpt `(sum’ ((from3 0) 5)))
+;(pretty-print (deforest-fxpt `(sum’ ((from3 0) 5))))
 
 ;; Unlines is done!
 #;(pretty-print
