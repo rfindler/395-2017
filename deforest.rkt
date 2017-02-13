@@ -10,6 +10,8 @@
 (define-namespace-anchor a)
 (define ns (namespace-anchor->namespace a))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;; Let's write up the example optimized "all" for practice.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (all’ p xs)
@@ -45,6 +47,8 @@
 (eval -build ns)
 ;; ^^ Essentially: partial application of g with cons and '().!
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;; Let's do the from example.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -68,9 +72,12 @@
 
 ;; Verify from’ is spiritually equal to from.
 (check-true (eval `(andmap equal? (from 0 5) (build ((from’ 0) 5))) ns))
-
 ;; Nice! We can see that these things work, just like the paper said. (Whodathunk.)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;; Let's build the (build) stdlib.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define -map’
   `(define map’
      (λ (f)
@@ -191,8 +198,11 @@
 (check-equal? (eval `((cons’ 5) '(4 3 2 1)) ns)
               '(5 4 3 2 1))
 
-;; Now let's do some kind of actual work.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;; Convert unlines to use build-based library functions.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; In Haskell, strings are lists, which means racket don't do that... So we fake it.
 (define (unlines ls) (flatten (map (λ (l) (append l '("\n"))) ls)))
 (define unlines-expr `(λ (ls) (flatten (map (λ (l) (append l '("\n"))) ls))))
@@ -203,6 +213,9 @@
 
 ;; flatten -> concat’
 ;; append  -> append’
+;; map -> map’
+;; filter -> filter’
+;; ...
 
 (define (libfn->buildfn exp)
   (match exp
@@ -223,11 +236,14 @@
   (check-equal? (apply string-append (eval bexp ns)) "this\n\nsucKs\n"))
 ;; But hey, the transformation is (roughly) working on the body of unlines.
 
-;; Let's try expanding buildfns using their bodies.
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Let's try inlining buildfns using their quoted bodies from above.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Oh man this is awful. What have I done.
 (define -body third)
 
+;; We need a function for capture-avoiding substitution.
 ;; Replace all free occurrences of exp with val in body.
 (define (symbol-add-suffix s1 s2)
   (string->symbol (string-append (symbol->string s1) (~a s2))))
@@ -298,6 +314,26 @@
   (replace-exp 'x 'y `(λ (y) (+ x y)))
   `(λ (y0) (+ y y0)))
 
+;; Now we can inline buildfn bodies.
+(define (expand-buildfn exp)
+  (match exp
+    [`(concat’ ,xs) `(,(-body -concat’) ,(expand-buildfn xs))]
+    [`((++’ ,xs) ,ys) `((,(-body -++’) ,(expand-buildfn xs)) ,(expand-buildfn ys))]
+    ;; Should expand-buildfn of f?
+    [`((map’ ,f) ,xs) `((,(-body -map’) ,(expand-buildfn f)) ,(expand-buildfn xs))]
+    [`((filter’ ,f) ,xs) `((,(-body -filter’) ,(expand-buildfn f))  ,(expand-buildfn xs))]
+    [`((zip’ ,xs) ,ys) `((,(-body -zip’) ,(expand-buildfn xs))  ,(expand-buildfn ys))]
+    [`((cons’ ,x) nil’) (replace-exp 'x x (-body -cons’-nil’))]
+    [`((cons’ ,hd) ,tl) `((,(-body -cons’) ,(expand-buildfn hd)) ,(expand-buildfn tl))]
+    [`(sum’ ,xs) `(,(-body -sum’) ,(expand-buildfn xs))]
+    [`((from2 ,a) ,b) `((,(-body -from2) ,(expand-buildfn a)) ,(expand-buildfn b))]
+    [`(λ (,a) ,b) `(λ (,a) ,(expand-buildfn b))]
+    [e e]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Now let's actually write up some transformation rules for deforesting stuff.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Use this macro to define one rule at a time.
 (define-syntax-rule (define-rule rule-name lhs rhs)
   (define (rule-name exp)
@@ -314,6 +350,10 @@
 (check-equal? (collapse-fold-nil `(((foldr’ cons) '()) '(a b c)))
               '(a b c))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; β-reduction!
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Application with variable, occurrence where variable doesn't occur free in λ body.
 ;; Couldn't figure out how to pass the "variable free in λ body" test case with macro definition.
 ;; β-reduction cases.
@@ -375,24 +415,6 @@
 (check-equal? (β-reduction `((λ (a) (+ a b)) b))
               `((λ (a) (+ a b)) b))
 
-;(define-rule β-reduction/unsafe `((λ (,a) ,b) ,x) (replace-exp a x b))
-
-;; Who needs efficiency?!
-(define (expand-buildfn exp)
-  (match exp
-    [`(concat’ ,xs) `(,(-body -concat’) ,(expand-buildfn xs))]
-    [`((++’ ,xs) ,ys) `((,(-body -++’) ,(expand-buildfn xs)) ,(expand-buildfn ys))]
-    ;; Should expand-buildfn of f?
-    [`((map’ ,f) ,xs) `((,(-body -map’) ,(expand-buildfn f)) ,(expand-buildfn xs))]
-    [`((filter’ ,f) ,xs) `((,(-body -filter’) ,(expand-buildfn f))  ,(expand-buildfn xs))]
-    [`((zip’ ,xs) ,ys) `((,(-body -zip’) ,(expand-buildfn xs))  ,(expand-buildfn ys))]
-    [`((cons’ ,x) nil’) (replace-exp 'x x (-body -cons’-nil’))]
-    [`((cons’ ,hd) ,tl) `((,(-body -cons’) ,(expand-buildfn hd)) ,(expand-buildfn tl))]
-    [`(sum’ ,xs) `(,(-body -sum’) ,(expand-buildfn xs))]
-    [`((from2 ,a) ,b) `((,(-body -from2) ,(expand-buildfn a)) ,(expand-buildfn b))]
-    [`(λ (,a) ,b) `(λ (,a) ,(expand-buildfn b))]
-    [e e]))
-
 (check-equal? (expand-buildfn `(concat’ '((a b c) (d e f))))
               `((λ (xs)
                    (build (λ (c) (λ (n) (((foldr’ (λ (x) (λ (y) (((foldr’ c) y) x)))) n) xs)))))
@@ -453,13 +475,11 @@
 (check-equal? (eval (expand-buildfn `nil’) ns) '())
 (check-equal? (eval (expand-buildfn `((cons’ 5) '(4 3 2 1))) ns) '(5 4 3 2 1))
 
-;; Make a command that does:
-;; raco docs %: (word under cursor)
 
-;; Keep running until a fixed point using a list of rules iterating over them.
-;; ^ May not always terminate. (Depends on β-reductions.)
-
-;; Loop: 1. expand 2. fold/build 3. fold/nil 4. β-reduction/constant
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Manually apply transformations to the (sum from) example.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define -from2
   `(define from2
      (λ (a)
@@ -505,7 +525,10 @@
     ns)
   15)
 
-;; Let's loop it.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Apply deforestation transformations in a loop until reaching a fixed point.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define (deforest-maybe exp)
   (for/first ([reduction (list expand-buildfn
                                β-reduction
