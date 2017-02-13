@@ -515,3 +515,16 @@
 
 (deforest-fxpt `(sum’ ((from2 0) 5)))
 
+(pretty-print
+  (β-reduction
+    (β-reduction
+      (β-reduction
+        (β-reduction
+          (β-reduction
+            (β-reduction
+              (expand-buildfn
+                (β-reduction
+                  `(,(libfn->buildfn unlines-expr) ',ls))))))))))
+
+(pretty-print (deforest-fxpt `(,(libfn->buildfn unlines-expr) ',ls)))
+
