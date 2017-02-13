@@ -240,9 +240,6 @@
 ;;
 ;; Let's try inlining buildfns using their quoted bodies from above.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Oh man this is awful. What have I done.
-(define -body third)
-
 ;; We need a function for capture-avoiding substitution.
 ;; Replace all free occurrences of exp with val in body.
 (define (symbol-add-suffix s1 s2)
@@ -314,6 +311,8 @@
   (replace-exp 'x 'y `(λ (y) (+ x y)))
   `(λ (y0) (+ y y0)))
 
+;; Oh man this is awful. What have I done.
+(define -body third)
 ;; Now we can inline buildfn bodies.
 (define (expand-buildfn exp)
   (match exp
@@ -586,4 +585,5 @@
   (apply string-append (eval (second (deforest-fxpt `(,(libfn->buildfn unlines-expr) ',ls))) ns)))
 
 ;; Missing test cases: zip’, filter’, all’
+;; Possible areas for expansion: generalized inlining.
 
