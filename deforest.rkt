@@ -484,11 +484,13 @@
 (check-equal? (eval `((from2 0) 5) ns) '(0 1 2 3 4 5))
 (check-equal? (eval `(sum’ ((from2 0) 5)) ns) 15)
 
-(collapse-fold-build
-  (β-reduction/build
-    (β-reduction/constant
+(check-equal?
+  (collapse-fold-build
+    (β-reduction/build
       (β-reduction/constant
-        (expand-buildfn `(sum’ ((from2 0) 5)))))))
+        (β-reduction/constant
+          (expand-buildfn `(sum’ ((from2 0) 5)))))))
+  '((((from’ 0) 5) (λ (a) (λ (b) (+ a b)))) 0))
 
 (check-equal?
   (eval
@@ -522,10 +524,13 @@
         `(,acts ,exp))))
   (deforest-fxpt-inner exp '()))
 
-(deforest-fxpt `(sum’ ((from2 0) 5)))
+;; The composition of multiple operations reduces nicely.
+;(deforest-fxpt `(sum’ ((from2 0) 5)))
+;; The way that functions are defined is very important. They must be properly generalized.
+;(deforest-fxpt `(sum’ ((from3 0) 5)))
 
 ;; Unlines is done!
-(pretty-print
+#;(pretty-print
   (β-reduction
     (β-reduction
       (collapse-fold-build
@@ -547,5 +552,9 @@
                                       (β-reduction
                                         `(,(libfn->buildfn unlines-expr) ',ls)))))))))))))))))))))
 
-(pretty-print (deforest-fxpt `(,(libfn->buildfn unlines-expr) ',ls)))
+
+;; The more complex example from the paper also reduces cleanly, in a similar series of steps.
+;(pretty-print (deforest-fxpt `(,(libfn->buildfn unlines-expr) ',ls)))
+(display
+  (apply string-append (eval (second (deforest-fxpt `(,(libfn->buildfn unlines-expr) ',ls))) ns)))
 
