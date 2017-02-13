@@ -316,7 +316,8 @@
 ;; Couldn't figure out how to pass the "variable free in λ body" test case with macro definition.
 (define (β-reduction/symbol exp)
   (match exp
-        [`((λ (,a) ,b) ,x) #:when (and (symbol? x) (not-in b x))
+        [`((λ (,a) ,b) ,x) #:when (or (equal? a x)
+                                      (and (symbol? x) (not-in b x)))
           (replace-exp a x b)]
         [(? list?) (map β-reduction/symbol exp)]
         [e e]))
