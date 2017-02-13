@@ -440,22 +440,44 @@
 
 (check-equal? (eval `((from3 0) 5) ns) '(0 1 2 3 4 5))
 
-#| (expand-buildfn |#
-#|   (β-reduction/constant |#
-#|     (β-reduction/constant `((,(-body -from2) 0) 5)))) |#
-
 (define -sum’
   `(define sum’
      (λ (ns)
         (((foldr’ (λ (a) (λ (b) (+ a b)))) 0) ns))))
 (eval -sum’ ns)
 
-(eval `((from2 0) 5) ns)
-(eval `(sum’ ((from2 0) 5)) ns)
+(check-equal? (eval `((from2 0) 5) ns) '(0 1 2 3 4 5))
+(check-equal? (eval `(sum’ ((from2 0) 5)) ns) 15)
 
 (collapse-fold-build
   (β-reduction/constant
     (β-reduction/constant
       (β-reduction/constant
         (expand-buildfn `(sum’ ((from2 0) 5)))))))
+
+(check-equal?
+  (eval
+    (collapse-fold-build
+      (β-reduction/constant
+        (β-reduction/constant
+          (β-reduction/constant
+            (expand-buildfn `(sum’ ((from2 0) 5)))))))
+    ns)
+  15)
+
+;; Let's loop it.
+(define (deforest-maybe exp)
+  (collapse-fold-build
+    (collapse-fold-nil
+      (β-reduction/constant
+        (expand-buildfn
+          exp)))))
+
+(define (deforest-fxpt exp)
+  (let ([new-exp (deforest-maybe exp)])
+    (if (equal? new-exp exp)
+      exp
+      (deforest-fxpt new-exp))))
+
+(deforest-fxpt `(sum’ ((from2 0) 5)))
 
