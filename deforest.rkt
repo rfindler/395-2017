@@ -314,31 +314,64 @@
 
 ;; Application with variable, occurrence where variable doesn't occur free in λ body.
 ;; Couldn't figure out how to pass the "variable free in λ body" test case with macro definition.
-(define (β-reduction/constant exp)
+(define (β-reduction/symbol exp)
   (match exp
-        [`((λ (,a) ,b) ,x) #:when
-                           (or (number? x)
-                               (string? x)
-                               (and (list? x) (equal? (first x) 'build))
-                               (and (symbol? x) (not-in b x)))
+        [`((λ (,a) ,b) ,x) #:when (and (symbol? x) (not-in b x))
           (replace-exp a x b)]
-        [(? list?) (map β-reduction/constant exp)]
+        [(? list?) (map β-reduction/symbol exp)]
         [e e]))
+
+(define constant/c (or/c string? number?))
+
+(define-rule β-reduction/constant
+             `((λ (,a) ,b) ,(? constant/c x))
+             (replace-exp a x b))
+(define quote-list?
+  (λ (x)
+     (and
+       (list? x)
+       (equal? (first x) 'quote)
+       ((or/c (listof constant/c) (listof (listof constant/c))) (second x)))))
+
+(define-rule β-reduction/list
+             `((λ (,a) ,b) ,(? quote-list? x))
+             (replace-exp a x b))
+
+(define (build? x) (and (list? x) (equal? (first x) 'build)))
+(define-rule β-reduction/build
+             `((λ (,a) ,b) ,(? build? x))
+             (replace-exp a x b))
+
+(define-rule β-reduction/lambda/unsafe!
+             `((λ (,a) ,b) ,(? (λ (x) (and (list? x) (equal? (first x) 'λ))) x))
+             (replace-exp a x b))
+
+(define (β-reduction exp)
+  (or
+    (for/first ([reduction (list β-reduction/constant
+                                 β-reduction/lambda/unsafe!
+                                 β-reduction/list
+                                 β-reduction/build
+                                 β-reduction/symbol)]
+                #:when (not (equal? (reduction exp) exp)))
+               (reduction exp))
+    exp))
+
 ;; Substitute simple argument with number.
-(check-equal? (β-reduction/constant `((λ (y) (+ y y)) 5)) '(+ 5 5))
+(check-equal? (β-reduction `((λ (y) (+ y y)) 5)) '(+ 5 5))
 ;; Substitute simple argument with free variable that isn't free in body.
-(check-equal? (β-reduction/constant `((λ (y) (+ y y)) x)) '(+ x x))
+(check-equal? (β-reduction `((λ (y) (+ y y)) x)) '(+ x x))
 ;; Reduce outer lambda.
-(check-equal? (β-reduction/constant `((λ (x) ((λ (y) (+ y y)) x)) 5)) '((λ (y) (+ y y)) 5))
+(check-equal? (β-reduction `((λ (x) ((λ (y) (+ y y)) x)) 5)) '((λ (y) (+ y y)) 5))
 ;; Reduce outer and then inner lambda.
-(check-equal? (β-reduction/constant
-                (β-reduction/constant `((λ (x) ((λ (y) (+ y y)) x)) 5)))
+(check-equal? (β-reduction
+                (β-reduction `((λ (x) ((λ (y) (+ y y)) x)) 5)))
               '(+ 5 5))
 ;; DON'T substitute if variable already occurs free in body.
-(check-equal? (β-reduction/constant `((λ (a) (+ a b)) b))
+(check-equal? (β-reduction `((λ (a) (+ a b)) b))
               `((λ (a) (+ a b)) b))
 
-(define-rule β-reduction/unsafe `((λ (,a) ,b) ,x) (replace-exp a x b))
+;(define-rule β-reduction/unsafe `((λ (,a) ,b) ,x) (replace-exp a x b))
 
 ;; Who needs efficiency?!
 (define (expand-buildfn exp)
@@ -349,10 +382,11 @@
     [`((map’ ,f) ,xs) `((,(-body -map’) ,(expand-buildfn f)) ,(expand-buildfn xs))]
     [`((filter’ ,f) ,xs) `((,(-body -filter’) ,(expand-buildfn f))  ,(expand-buildfn xs))]
     [`((zip’ ,xs) ,ys) `((,(-body -zip’) ,(expand-buildfn xs))  ,(expand-buildfn ys))]
-    [`((cons’ ,x) nil’) (-body -cons’-nil’)]
+    [`((cons’ ,x) nil’) (replace-exp 'x x (-body -cons’-nil’))]
     [`((cons’ ,hd) ,tl) `((,(-body -cons’) ,(expand-buildfn hd)) ,(expand-buildfn tl))]
     [`(sum’ ,xs) `(,(-body -sum’) ,(expand-buildfn xs))]
     [`((from2 ,a) ,b) `((,(-body -from2) ,(expand-buildfn a)) ,(expand-buildfn b))]
+    [`(λ (,a) ,b) `(λ (,a) ,(expand-buildfn b))]
     [e e]))
 
 (check-equal? (expand-buildfn `(concat’ '((a b c) (d e f))))
@@ -398,7 +432,7 @@
 (check-equal? (expand-buildfn `((cons’ a) '(b c)))
               `(((λ (x) (λ (xs) (build (λ (c) (λ (n) ((c x) (((foldr’ c) n) xs))))))) a) '(b c)))
 (check-equal? (expand-buildfn `((cons’ a) nil’))
-              `(build (λ (c n) (c x n))))
+              `(build (λ (c n) (c a n))))
 (check-equal? (expand-buildfn `(λ (a) (cons’ a '(1 2 3))))
               `(λ (a) (cons’ a '(1 2 3))))
 (check-equal? (expand-buildfn `(+ x 1))
@@ -450,7 +484,7 @@
 (check-equal? (eval `(sum’ ((from2 0) 5)) ns) 15)
 
 (collapse-fold-build
-  (β-reduction/constant
+  (β-reduction/build
     (β-reduction/constant
       (β-reduction/constant
         (expand-buildfn `(sum’ ((from2 0) 5)))))))
@@ -458,7 +492,7 @@
 (check-equal?
   (eval
     (collapse-fold-build
-      (β-reduction/constant
+      (β-reduction/build
         (β-reduction/constant
           (β-reduction/constant
             (expand-buildfn `(sum’ ((from2 0) 5)))))))
@@ -469,7 +503,7 @@
 (define (deforest-maybe exp)
   (collapse-fold-build
     (collapse-fold-nil
-      (β-reduction/constant
+      (β-reduction
         (expand-buildfn
           exp)))))
 
