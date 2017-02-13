@@ -515,16 +515,29 @@
 
 (deforest-fxpt `(sum’ ((from2 0) 5)))
 
+;; Unlines is done!
 (pretty-print
   (β-reduction
-    (β-reduction
+  (β-reduction
+    (collapse-fold-build
       (β-reduction
         (β-reduction
           (β-reduction
-            (β-reduction
-              (expand-buildfn
+            (collapse-fold-build
+              (β-reduction
                 (β-reduction
-                  `(,(libfn->buildfn unlines-expr) ',ls))))))))))
+                  (β-reduction
+                    (collapse-fold-build
+                      (collapse-fold-nil
+                        (β-reduction
+                          (β-reduction
+                            (β-reduction
+                              (β-reduction
+                                (β-reduction
+                                  (β-reduction
+                                    (expand-buildfn
+                                      (β-reduction
+                                        `(,(libfn->buildfn unlines-expr) ',ls))))))))))))))))))))))
 
 (pretty-print (deforest-fxpt `(,(libfn->buildfn unlines-expr) ',ls)))
 
