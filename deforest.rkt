@@ -165,7 +165,7 @@
 (check-equal? (eval `((cons’ 5) nil’) ns) '(5))
 
 (define -cons’-nil’
-  `(define (cons’ x nil’) (build (λ (c n) (c x n)))))
+  `(define (cons’ x nil’) (build (λ (c) (λ (n) ((c x) n))))))
 
 ;; Verify loosely/informally that these behave more-or-less as expected.
 (check-equal? (eval `((map’ -) '(1 2 3)) ns)
@@ -432,7 +432,7 @@
 (check-equal? (expand-buildfn `((cons’ a) '(b c)))
               `(((λ (x) (λ (xs) (build (λ (c) (λ (n) ((c x) (((foldr’ c) n) xs))))))) a) '(b c)))
 (check-equal? (expand-buildfn `((cons’ a) nil’))
-              `(build (λ (c n) (c a n))))
+              `(build (λ (c) (λ (n) ((c a) n)))))
 (check-equal? (expand-buildfn `(λ (a) (cons’ a '(1 2 3))))
               `(λ (a) (cons’ a '(1 2 3))))
 (check-equal? (expand-buildfn `(+ x 1))
