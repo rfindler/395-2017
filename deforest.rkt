@@ -28,6 +28,7 @@
        (λ (xs)
           (cons x xs)))))
 (eval -: ns)
+
 (define -foldr’
   `(define foldr’
      (λ (f)
@@ -38,6 +39,7 @@
                 z
                 xs))))))
 (eval -foldr’ ns)
+
 (define -build
   `(define (build g) ((g :) '())))
 (eval -build ns)
@@ -314,6 +316,7 @@
 
 ;; Application with variable, occurrence where variable doesn't occur free in λ body.
 ;; Couldn't figure out how to pass the "variable free in λ body" test case with macro definition.
+;; β-reduction cases.
 (define (β-reduction/symbol exp)
   (match exp
         [`((λ (,a) ,b) ,x) #:when (or (equal? a x)
@@ -526,6 +529,7 @@
 
 ;; The composition of multiple operations reduces nicely.
 ;(deforest-fxpt `(sum’ ((from2 0) 5)))
+
 ;; The way that functions are defined is very important. They must be properly generalized.
 ;(deforest-fxpt `(sum’ ((from3 0) 5)))
 
@@ -557,4 +561,6 @@
 ;(pretty-print (deforest-fxpt `(,(libfn->buildfn unlines-expr) ',ls)))
 (display
   (apply string-append (eval (second (deforest-fxpt `(,(libfn->buildfn unlines-expr) ',ls))) ns)))
+
+;; Missing test cases: zip’, filter’, all’
 
