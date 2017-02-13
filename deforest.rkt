@@ -502,17 +502,16 @@
 
 ;; Let's loop it.
 (define (deforest-maybe exp)
-  (collapse-fold-build
-    (collapse-fold-nil
-      (β-reduction
-        (expand-buildfn
-          exp)))))
+  (for/first ([reduction (list expand-buildfn
+                               β-reduction
+                               collapse-fold-nil
+                               collapse-fold-build)]
+              #:when (not (equal? (reduction exp) exp)))
+             (reduction exp)))
 
 (define (deforest-fxpt exp)
   (let ([new-exp (deforest-maybe exp)])
-    (if (equal? new-exp exp)
-      exp
-      (deforest-fxpt new-exp))))
+    (if new-exp (deforest-fxpt new-exp) exp)))
 
 (deforest-fxpt `(sum’ ((from2 0) 5)))
 
