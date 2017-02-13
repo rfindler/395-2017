@@ -518,26 +518,26 @@
 ;; Unlines is done!
 (pretty-print
   (β-reduction
-  (β-reduction
-    (collapse-fold-build
-      (β-reduction
+    (β-reduction
+      (collapse-fold-build
         (β-reduction
           (β-reduction
-            (collapse-fold-build
-              (β-reduction
+            (β-reduction
+              (collapse-fold-build
                 (β-reduction
                   (β-reduction
-                    (collapse-fold-build
-                      (collapse-fold-nil
-                        (β-reduction
+                    (β-reduction
+                      (collapse-fold-build
+                        (collapse-fold-nil
                           (β-reduction
                             (β-reduction
                               (β-reduction
                                 (β-reduction
                                   (β-reduction
-                                    (expand-buildfn
-                                      (β-reduction
-                                        `(,(libfn->buildfn unlines-expr) ',ls))))))))))))))))))))))
+                                    (β-reduction
+                                      (expand-buildfn
+                                        (β-reduction
+                                          `(,(libfn->buildfn unlines-expr) ',ls))))))))))))))))))))))
 
 (pretty-print (deforest-fxpt `(,(libfn->buildfn unlines-expr) ',ls)))
 
