@@ -333,6 +333,66 @@
     [`(λ (,a) ,b) `(λ (,a) ,(expand-buildfn b))]
     [e e]))
 
+(check-equal? (expand-buildfn `(concat’ '((a b c) (d e f))))
+              `((λ (xs)
+                   (build (λ (c) (λ (n) (((foldr’ (λ (x) (λ (y) (((foldr’ c) y) x)))) n) xs)))))
+                '((a b c) (d e f))))
+(check-equal? (expand-buildfn `((++’ '(a b c)) '(d e f)))
+              `(((λ
+                   (xs)
+                   (λ
+                     (ys)
+                     (build (λ (c) (λ (n) (((foldr’ c) (((foldr’ c) n) ys)) xs))))))
+                 '(a b c))
+                '(d e f)))
+(check-equal? (expand-buildfn `((map’ (λ (x) (+ x 1))) '(1 2 3)))
+              `(((λ
+                   (f)
+                   (λ
+                     (xs)
+                     (build (λ (c) (λ (n) (((foldr’ (λ (a) (λ (b) ((c (f a)) b)))) n) xs))))))
+                 (λ (x) (+ x 1)))
+                '(1 2 3)))
+(check-equal? (expand-buildfn `((filter’ number?) '(1 "a" 2 "b" 3 "c")))
+              `(((λ
+                   (f)
+                   (λ
+                     (xs)
+                     (build
+                       (λ (c) (λ (n) (((foldr’ (λ (a) (λ (b) (if (f a) ((c a) b) b)))) n) xs))))))
+                 number?)
+                '(1 "a" 2 "b" 3 "c")))
+(check-equal? (expand-buildfn `((zip’ '(a b c)) '(d e f)))
+              `(((λ (xs)
+                    (λ (ys)
+                       (build
+                         (λ (c)
+                            (λ (n)
+                               (if (and (not (empty? xs)) (not (empty? ys)))
+                                 ((c (list (first xs) (first ys))) ((zip’ (rest xs)) (rest ys)))
+                                 n))))))
+                 '(a b c))
+                '(d e f)))
+(check-equal? (expand-buildfn `((cons’ a) '(b c)))
+              `(((λ (x) (λ (xs) (build (λ (c) (λ (n) ((c x) (((foldr’ c) n) xs))))))) a) '(b c)))
+(check-equal? (expand-buildfn `((cons’ a) nil’))
+              `(build (λ (c) (λ (n) ((c a) n)))))
+(check-equal? (expand-buildfn `(λ (a) (cons’ a '(1 2 3))))
+              `(λ (a) (cons’ a '(1 2 3))))
+(check-equal? (expand-buildfn `(+ x 1))
+              `(+ x 1))
+(check-equal? (eval (expand-buildfn `(concat’ '((a b c) (d e f)))) ns) '(a b c d e f))
+(check-equal? (eval (expand-buildfn `((++’ '(a b c)) '(d e f))) ns) '(a b c d e f))
+;; Same tests as above, but with (expand-buildfn) called on the exp first.
+(check-equal? (eval (expand-buildfn `((map’ -) '(1 2 3))) ns) '(-1 -2 -3))
+(check-equal? (eval (expand-buildfn `((filter’ number?) '(1 2 "a" "b" 4 "c"))) ns) '(1 2 4))
+(check-equal? (eval (expand-buildfn `((++’ '(1 2)) '(3 4))) ns) '(1 2 3 4))
+(check-equal? (eval (expand-buildfn `(concat’ '((1) (2 3) (4 5 6)))) ns) '(1 2 3 4 5 6))
+(check-equal? (eval (expand-buildfn `((zip’ '(1 2 3)) '("a" "b" "c"))) ns)
+              '((1 "a") (2 "b") (3 "c")))
+(check-equal? (eval (expand-buildfn `nil’) ns) '())
+(check-equal? (eval (expand-buildfn `((cons’ 5) '(4 3 2 1))) ns) '(5 4 3 2 1))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Now let's actually write up some transformation rules for deforesting stuff.
@@ -416,67 +476,6 @@
 ;; DON'T substitute if variable already occurs free in body.
 (check-equal? (β-reduction `((λ (a) (+ a b)) b))
               `((λ (a) (+ a b)) b))
-
-(check-equal? (expand-buildfn `(concat’ '((a b c) (d e f))))
-              `((λ (xs)
-                   (build (λ (c) (λ (n) (((foldr’ (λ (x) (λ (y) (((foldr’ c) y) x)))) n) xs)))))
-                '((a b c) (d e f))))
-(check-equal? (expand-buildfn `((++’ '(a b c)) '(d e f)))
-              `(((λ
-                   (xs)
-                   (λ
-                     (ys)
-                     (build (λ (c) (λ (n) (((foldr’ c) (((foldr’ c) n) ys)) xs))))))
-                 '(a b c))
-                '(d e f)))
-(check-equal? (expand-buildfn `((map’ (λ (x) (+ x 1))) '(1 2 3)))
-              `(((λ
-                   (f)
-                   (λ
-                     (xs)
-                     (build (λ (c) (λ (n) (((foldr’ (λ (a) (λ (b) ((c (f a)) b)))) n) xs))))))
-                 (λ (x) (+ x 1)))
-                '(1 2 3)))
-(check-equal? (expand-buildfn `((filter’ number?) '(1 "a" 2 "b" 3 "c")))
-              `(((λ
-                   (f)
-                   (λ
-                     (xs)
-                     (build
-                       (λ (c) (λ (n) (((foldr’ (λ (a) (λ (b) (if (f a) ((c a) b) b)))) n) xs))))))
-                 number?)
-                '(1 "a" 2 "b" 3 "c")))
-(check-equal? (expand-buildfn `((zip’ '(a b c)) '(d e f)))
-              `(((λ (xs)
-                    (λ (ys)
-                       (build
-                         (λ (c)
-                            (λ (n)
-                               (if (and (not (empty? xs)) (not (empty? ys)))
-                                 ((c (list (first xs) (first ys))) ((zip’ (rest xs)) (rest ys)))
-                                 n))))))
-                 '(a b c))
-                '(d e f)))
-(check-equal? (expand-buildfn `((cons’ a) '(b c)))
-              `(((λ (x) (λ (xs) (build (λ (c) (λ (n) ((c x) (((foldr’ c) n) xs))))))) a) '(b c)))
-(check-equal? (expand-buildfn `((cons’ a) nil’))
-              `(build (λ (c) (λ (n) ((c a) n)))))
-(check-equal? (expand-buildfn `(λ (a) (cons’ a '(1 2 3))))
-              `(λ (a) (cons’ a '(1 2 3))))
-(check-equal? (expand-buildfn `(+ x 1))
-              `(+ x 1))
-(check-equal? (eval (expand-buildfn `(concat’ '((a b c) (d e f)))) ns) '(a b c d e f))
-(check-equal? (eval (expand-buildfn `((++’ '(a b c)) '(d e f))) ns) '(a b c d e f))
-;; Same tests as above, but with (expand-buildfn) called on the exp first.
-(check-equal? (eval (expand-buildfn `((map’ -) '(1 2 3))) ns) '(-1 -2 -3))
-(check-equal? (eval (expand-buildfn `((filter’ number?) '(1 2 "a" "b" 4 "c"))) ns) '(1 2 4))
-(check-equal? (eval (expand-buildfn `((++’ '(1 2)) '(3 4))) ns) '(1 2 3 4))
-(check-equal? (eval (expand-buildfn `(concat’ '((1) (2 3) (4 5 6)))) ns) '(1 2 3 4 5 6))
-(check-equal? (eval (expand-buildfn `((zip’ '(1 2 3)) '("a" "b" "c"))) ns)
-              '((1 "a") (2 "b") (3 "c")))
-(check-equal? (eval (expand-buildfn `nil’) ns) '())
-(check-equal? (eval (expand-buildfn `((cons’ 5) '(4 3 2 1))) ns) '(5 4 3 2 1))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
