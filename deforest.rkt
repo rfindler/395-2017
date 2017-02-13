@@ -506,12 +506,21 @@
                                β-reduction
                                collapse-fold-nil
                                collapse-fold-build)]
+              [reduction-name (list 'expand-buildfn
+                                    'β-reduction
+                                    'collapse-fold-nil
+                                    'collapse-fold-build)]
               #:when (not (equal? (reduction exp) exp)))
-             (reduction exp)))
+             (list reduction-name (reduction exp))))
 
 (define (deforest-fxpt exp)
-  (let ([new-exp (deforest-maybe exp)])
-    (if new-exp (deforest-fxpt new-exp) exp)))
+  (define (deforest-fxpt-inner exp acts)
+    (let ([new-values (deforest-maybe exp)])
+      (if new-values
+        (match-let ([`(,action ,new-exp) new-values])
+          (deforest-fxpt-inner new-exp (cons action acts)))
+        `(,acts ,exp))))
+  (deforest-fxpt-inner exp '()))
 
 (deforest-fxpt `(sum’ ((from2 0) 5)))
 
@@ -522,22 +531,21 @@
       (collapse-fold-build
         (β-reduction
           (β-reduction
-            (β-reduction
-              (collapse-fold-build
+            (collapse-fold-build
+              (β-reduction
                 (β-reduction
                   (β-reduction
                     (β-reduction
                       (collapse-fold-build
-                        (collapse-fold-nil
+                        (β-reduction
                           (β-reduction
                             (β-reduction
                               (β-reduction
                                 (β-reduction
                                   (β-reduction
-                                    (β-reduction
-                                      (expand-buildfn
-                                        (β-reduction
-                                          `(,(libfn->buildfn unlines-expr) ',ls))))))))))))))))))))))
+                                    (expand-buildfn
+                                      (β-reduction
+                                        `(,(libfn->buildfn unlines-expr) ',ls)))))))))))))))))))))
 
 (pretty-print (deforest-fxpt `(,(libfn->buildfn unlines-expr) ',ls)))
 
