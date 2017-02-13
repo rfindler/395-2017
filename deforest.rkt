@@ -578,7 +578,6 @@
                                       (β-reduction
                                         `(,(libfn->buildfn unlines-expr) ',ls)))))))))))))))))))))
 
-
 ;; The more complex example from the paper also reduces cleanly, in a similar series of steps.
 ;(pretty-print (deforest-fxpt `(,(libfn->buildfn unlines-expr) ',ls)))
 (display
