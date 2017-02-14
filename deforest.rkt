@@ -589,3 +589,17 @@
 ;; Missing test cases: zip’, filter’, all’
 ;; Possible areas for expansion: generalized inlining.
 
+(define (p x)
+  (print x)
+  x)
+
+#;(pretty-print
+  (deforest-fxpt `((map’ (λ (x) (p x)))
+     ((map’ (λ (y) (p y))) '(1 2 3)))))
+
+#;(pretty-print
+  (eval
+    (second
+      (deforest-fxpt `((map’ (λ (x) (p x)))
+                       ((map’ (λ (y) (p y))) '(1 2 3))))) ns))
+
