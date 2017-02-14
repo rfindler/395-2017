@@ -408,8 +408,8 @@
 (check-equal? (collapse-fold-build `(((foldr’ +) 0) (build ,(-body -map’))))
               `((,(-body -map’) +) 0))
 
-(define-rule collapse-fold-nil `(((foldr’ cons) '()) ',xs) xs)
-(check-equal? (collapse-fold-nil `(((foldr’ cons) '()) '(a b c)))
+(define-rule collapse-fold-nil `(((foldr’ cons’) nil’) ',xs) xs)
+(check-equal? (collapse-fold-nil `(((foldr’ cons’) nil’) '(a b c)))
               '(a b c))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
