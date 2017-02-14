@@ -324,7 +324,6 @@
     [`((map’ ,f) ,xs) `((,(-body -map’) ,(expand-buildfn f)) ,(expand-buildfn xs))]
     [`((filter’ ,f) ,xs) `((,(-body -filter’) ,(expand-buildfn f))  ,(expand-buildfn xs))]
     [`((zip’ ,xs) ,ys) `((,(-body -zip’) ,(expand-buildfn xs))  ,(expand-buildfn ys))]
-    [`((cons’ ,x) nil’) (replace-exp 'x x (-body -cons’-nil’))]
     [`((cons’ ,hd) ,tl) `((,(-body -cons’) ,(expand-buildfn hd)) ,(expand-buildfn tl))]
     ;; Non-library functions.
     ;;--------------------------------------------------------------------------------------
@@ -375,8 +374,8 @@
                 '(d e f)))
 (check-equal? (expand-buildfn `((cons’ a) '(b c)))
               `(((λ (x) (λ (xs) (build (λ (c) (λ (n) ((c x) (((foldr’ c) n) xs))))))) a) '(b c)))
-(check-equal? (expand-buildfn `((cons’ a) nil’))
-              `(build (λ (c) (λ (n) ((c a) n)))))
+#| (check-equal? (expand-buildfn `((cons’ a) nil’)) |#
+#|               `(build (λ (c) (λ (n) ((c a) n))))) |#
 (check-equal? (expand-buildfn `(λ (a) (cons’ a '(1 2 3))))
               `(λ (a) (cons’ a '(1 2 3))))
 (check-equal? (expand-buildfn `(+ x 1))
