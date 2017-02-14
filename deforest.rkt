@@ -551,33 +551,35 @@
   (deforest-fxpt-inner exp '()))
 
 ;; The composition of multiple operations reduces nicely.
-;(pretty-print (deforest-fxpt `(sum’ ((from2 0) 5))))
+#;(pretty-print (deforest-fxpt `(sum’ ((from2 0) 5))))
 
 ;; The way that functions are defined is very important. They must be properly generalized.
-;(pretty-print (deforest-fxpt `(sum’ ((from3 0) 5))))
+#;(pretty-print (deforest-fxpt `(sum’ ((from3 0) 5))))
 
 ;; Unlines is done!
 #;(pretty-print
-  (β-reduction
     (β-reduction
-      (collapse-fold-build
-        (β-reduction
+    (β-reduction
+      (β-reduction
+        (collapse-fold-build
           (β-reduction
-            (collapse-fold-build
-              (β-reduction
+            (β-reduction
+              (collapse-fold-build
                 (β-reduction
                   (β-reduction
                     (β-reduction
-                      (collapse-fold-build
-                        (β-reduction
+                      (β-reduction
+                        (collapse-fold-build
                           (β-reduction
                             (β-reduction
                               (β-reduction
                                 (β-reduction
                                   (β-reduction
-                                    (expand-buildfn
-                                      (β-reduction
-                                        `(,(libfn->buildfn unlines-expr) ',ls)))))))))))))))))))))
+                                    (β-reduction
+                                      (expand-buildfn
+                                        (β-reduction
+                                          `(,(libfn->buildfn unlines-expr)
+                                             ',ls))))))))))))))))))))))
 
 ;; The more complex example from the paper also reduces cleanly, in a similar series of steps.
 ;(pretty-print (deforest-fxpt `(,(libfn->buildfn unlines-expr) ',ls)))
